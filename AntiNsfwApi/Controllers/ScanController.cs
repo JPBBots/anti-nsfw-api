@@ -70,8 +70,16 @@ namespace AntiNsfwApi.Controllers
 
             var res = await spy.ClassifyImageAsync(info.url);
 
-            p.nsfw = res.IsNsfw;
-            p.percentage = getPercentage(res);
+            if (res.PredictedLabel == "Sexy")
+            {
+                p.nsfw = false;
+                p.percentage = 0;
+            } else
+            {
+                p.nsfw = res.IsNsfw;
+                p.percentage = getPercentage(res);
+            }
+
             if (debug)
             {
                 p.extended = res;
