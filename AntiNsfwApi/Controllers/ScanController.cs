@@ -42,50 +42,45 @@ namespace AntiNsfwApi.Controllers
     {
         private readonly NsfwSpy spy = new();
 
-        private float getPercentage (NsfwSpyResult res)
+        private Prediction makePrediction (NsfwSpyResult res, bool debug = false)
         {
-            if (res.PredictedLabel == "Pornography")
+            Prediction prediction = new()
             {
-                return res.Pornography;
-            }
-            else if (res.PredictedLabel == "Sexy")
+                nsfw = false,
+                percentage = 0,
+                extended = null
+            };
+
+            float percentage = 0;
+
+            float[] percentages = { res.Pornography, res.Hentai };
+
+            foreach (float percent in percentages)
             {
-                return res.Sexy;
+                if (percent > percentage) percentage = percent;
             }
-            else if (res.PredictedLabel == "Hentai")
+
+            if (percentage > 0.50 && res.IsNsfw)
             {
-                return res.Hentai; ;
+                prediction.nsfw = true;
+                prediction.percentage = percentage;
             }
-            else
+
+            if (debug)
             {
-                return res.Neutral;
+                prediction.extended = res;
             }
+
+            return prediction;
         }
 
         [HttpPost]
         [Route("/scan/image")]
         public async Task<Prediction> ScanImage([FromBody]PostToScan info, [FromQuery(Name = "debug")] bool debug)
         {
-            Prediction p = new();
-
             var res = await spy.ClassifyImageAsync(info.url);
 
-            if (res.PredictedLabel == "Sexy")
-            {
-                p.nsfw = false;
-                p.percentage = 0;
-            } else
-            {
-                p.nsfw = res.IsNsfw;
-                p.percentage = getPercentage(res);
-            }
-
-            if (debug)
-            {
-                p.extended = res;
-            }
-
-            return p;
+            return makePrediction(res, debug);
         }
 
 /*        [HttpPost]
